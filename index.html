@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>PurpleCart Checkout</title>
+
+<style>
+
+/* ---------- GLOBAL ---------- */
+
+body{
+font-family: Arial, sans-serif;
+background:#f5f0ff;
+margin:0;
+color:#222;
+}
+
+/* ---------- HEADER ---------- */
+
+.header{
+background:#7b2cff;
+color:white;
+padding:18px;
+text-align:center;
+font-size:24px;
+font-weight:bold;
+}
+
+/* ---------- MAIN ---------- */
+
+.container{
+max-width:1100px;
+margin:30px auto;
+background:white;
+padding:25px;
+border-radius:12px;
+box-shadow:0 0 15px rgba(0,0,0,0.08);
+}
+
+button{
+background:#7b2cff;
+color:white;
+border:none;
+padding:10px 20px;
+border-radius:6px;
+cursor:pointer;
+margin-top:10px;
+}
+
+.step{display:none;}
+.active{display:block;}
+
+.progress{
+display:flex;
+gap:10px;
+margin-bottom:20px;
+}
+
+.progress div{
+flex:1;
+padding:10px;
+background:#eee;
+text-align:center;
+border-radius:6px;
+}
+
+.progress .done{
+background:#7b2cff;
+color:white;
+}
+
+.flex{
+display:flex;
+gap:25px;
+align-items:flex-start;
+}
+
+.summary{
+background:#faf7ff;
+padding:15px;
+border-radius:8px;
+width:30%;
+min-height:200px;
+}
+
+input,select{
+width:100%;
+padding:10px;
+margin:8px 0;
+border:1px solid #ccc;
+border-radius:6px;
+}
+
+/* ---------- PRODUCT LIST (FIXED ALIGNMENT) ---------- */
+
+.product{
+display:flex;
+align-items:center;
+gap:8px; /* keeps checkbox close to name */
+margin:8px 0;
+}
+
+.product label{
+display:flex;
+align-items:center;
+gap:8px;
+cursor:pointer;
+}
+
+.product input{
+width:auto; /* prevent full width checkbox */
+margin:0;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">?? PurpleCart</div>
+
+<div class="container">
+
+<div class="progress">
+<div id="p0">Cart</div>
+<div id="p1">Shipping</div>
+<div id="p2">Billing</div>
+<div id="p3">Payment</div>
+<div id="p4">Summary</div>
+</div>
+
+<div class="flex">
+
+<div style="width:70%">
+
+<!-- STEP 1 -->
+
+<div class="step active" id="step0">
+<h2>Select Products</h2>
+<div id="cart"></div>
+<h3>Total: ?<span id="total">0</span></h3>
+<button onclick="nextStep(0)">Next</button>
+</div>
+
+<!-- STEP 2 -->
+
+<div class="step" id="step1">
+<h2>Shipping Info</h2>
+<input id="name" placeholder="Full Name">
+<input id="address" placeholder="Address">
+
+<select id="country">
+<option value="india">India</option>
+<option value="usa">USA</option>
+<option value="uk">UK</option>
+</select>
+
+<input id="postal" placeholder="Postal Code">
+<input id="phone" placeholder="Phone">
+<button onclick="nextStep(1)">Next</button>
+</div>
+
+<!-- STEP 3 -->
+
+<div class="step" id="step2">
+<h2>Billing</h2>
+<label>
+<input type="checkbox" id="sameBilling" checked>
+Same as shipping
+</label>
+<br>
+<button onclick="nextStep(2)">Next</button>
+</div>
+
+<!-- STEP 4 -->
+
+<div class="step" id="step3">
+<h2>Payment</h2>
+<input id="card" placeholder="Card Number">
+<input id="holder" placeholder="Card Holder">
+<input id="expiry" type="month">
+<input id="cvv" placeholder="CVV">
+<button onclick="nextStep(3)">Next</button>
+</div>
+
+<!-- STEP 5 -->
+
+<div class="step" id="step4">
+<h2>Order Complete ?</h2>
+<p>Checkout successful!</p>
+</div>
+
+</div>
+
+<div class="summary">
+<h3>Summary</h3>
+<div id="summaryText">Select products...</div>
+</div>
+
+</div>
+</div>
+
+<script>
+
+/* ---------- PRODUCTS ---------- */
+
+const products = [
+{name:"Headphones",price:999},
+{name:"Smart Watch",price:1499},
+{name:"Sneakers",price:1999},
+{name:"Laptop Sleeve",price:499},
+{name:"Keyboard",price:899},
+{name:"Mouse",price:599},
+{name:"Hoodie",price:1299},
+{name:"Perfume",price:799},
+{name:"Water Bottle",price:299},
+{name:"Phone Case",price:399}
+];
+
+let selectedProducts=[];
+let cartHTML="";
+
+products.forEach((p,i)=>{
+cartHTML+=`
+<div class="product">
+<label>
+<b>${p.name}</b> (?${p.price})
+<input type="checkbox" onchange="updateCart(${i},this)">
+</label>
+</div>`;
+});
+
+document.getElementById("cart").innerHTML=cartHTML;
+
+
+/* ---------- CART ---------- */
+
+function updateCart(index,checkbox){
+
+if(checkbox.checked){
+selectedProducts.push(products[index]);
+}else{
+selectedProducts=selectedProducts.filter(p=>p!==products[index]);
+}
+
+let total=0;
+selectedProducts.forEach(p=> total+=p.price);
+
+document.getElementById("total").innerText=total;
+
+updateSummary();
+}
+
+
+/* ---------- STEPS ---------- */
+
+function showStep(n){
+
+document.querySelectorAll(".step").forEach(s=>s.classList.remove("active"));
+document.getElementById("step"+n).classList.add("active");
+
+document.querySelectorAll(".progress div").forEach((p,i)=>{
+p.classList.toggle("done",i<=n);
+});
+
+updateSummary();
+}
+
+
+/* ---------- VALIDATION ---------- */
+
+function validateShipping(){
+
+let country=document.getElementById("country").value;
+let postal=document.getElementById("postal").value;
+let phone=document.getElementById("phone").value;
+
+let postalRegex={
+india:/^[1-9][0-9]{5}$/,
+usa:/^\d{5}(-\d{4})?$/,
+uk:/^[A-Z]{1,2}\d[A-Z\d]? ?\d[A-Z]{2}$/i
+};
+
+if(!postalRegex[country].test(postal)){
+alert("Invalid postal code");
+return false;
+}
+
+if(!/^[0-9]{10,15}$/.test(phone)){
+alert("Invalid phone");
+return false;
+}
+
+return true;
+}
+
+function luhn(card){
+
+let sum=0;
+let doubleDigit=false;
+
+for(let i=card.length-1;i>=0;i--){
+
+let digit=parseInt(card[i]);
+
+if(doubleDigit){
+digit*=2;
+if(digit>9) digit-=9;
+}
+
+sum+=digit;
+doubleDigit=!doubleDigit;
+}
+
+return sum%10===0;
+}
+
+function validatePayment(){
+
+let card=document.getElementById("card").value.replace(/\s/g,'');
+
+if(!luhn(card)){
+alert("Invalid card");
+return false;
+}
+
+let expiry=new Date(document.getElementById("expiry").value);
+let now=new Date();
+
+if(expiry<=now){
+alert("Card expired");
+return false;
+}
+
+return true;
+}
+
+function nextStep(current){
+
+if(current==0 && selectedProducts.length==0){
+alert("Select at least one product");
+return;
+}
+
+if(current==1 && !validateShipping()) return;
+if(current==3 && !validatePayment()) return;
+
+showStep(current+1);
+}
+
+
+/* ---------- SUMMARY ---------- */
+
+function updateSummary(){
+
+let total=0;
+selectedProducts.forEach(p=> total+=p.price);
+
+let text=`
+Products Selected: ${selectedProducts.length}<br>
+Total Amount: ?${total}<br>
+Name: ${document.getElementById("name").value || "-"}<br>
+Card: **** **** **** ${document.getElementById("card").value.slice(-4)}
+`;
+
+document.getElementById("summaryText").innerHTML=text;
+}
+
+</script>
+
+</body>
+</html>
